@@ -38,7 +38,7 @@ jobs:
           echo "$PWD/apache-jmeter-${JMETER_VERSION}/bin" >> $GITHUB_PATH
 
       - name: 📦 Instalar dependencias de Python para el Reporte
-        run: pip install pandas matplotlib plotly jmeter-analysis
+        run: pip install pandas matplotlib plotly
 
       - name: 📥 Clonar y compilar la AUT
         run: |
