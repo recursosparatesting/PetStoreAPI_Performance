@@ -9,7 +9,7 @@ on:
         default: 'https://github.com/swagger-api/swagger-petstore.git'
 
       jmx_file:
-        description: 'Nombre del archivo .jmx de JMeter
+        description: 'Nombre del archivo .jmx de JMeter'
         required: true
         default: 'PP_PetStoreApi.jmx'
 
