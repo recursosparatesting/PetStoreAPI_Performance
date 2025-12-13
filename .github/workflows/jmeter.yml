@@ -53,49 +53,46 @@ jobs:
           cd ..
 
 
-      - name: 📊 Iniciar Monitoreo de sar en background
-        id: start_sar
+      - name: 🏃 Ejecutar Pruebas de Carga y Monitoreo de sar (Combinado)
         run: |
-          # 1. Ejecutar sar en background, redirigiendo la salida binaria a sar.bin
-          # Usamos un grupo de procesos {} para asegurar que el PID capturado es correcto
-          { sar -o sar.bin -A 5 0 > /dev/null 2>&1 & }
-          
-          # 2. Capturar y guardar el PID del último comando ejecutado en background ($!)
-          # Lo guardamos en un archivo temporal en el workspace
-          SAR_PID=$!
-          echo "$SAR_PID" > sar_pid_tmp.txt
-          echo "sar iniciado con PID: $SAR_PID"
-          
-          # 3. Dar tiempo a sar para iniciar
-          sleep 5
+            # ----------------------------------------------------
+            # INICIO: ARRANQUE DEL MONITOREO (SAR)
+            # ----------------------------------------------------
+            echo "Iniciando monitoreo sar..."
+            # Ejecutar sar en background, redirigiendo la salida binaria a sar.bin
+            sar -o sar.bin -A 5 0 > /dev/null 2>&1 &
+            SAR_PID=$!
+            echo "sar iniciado con PID: $SAR_PID"
+            
+            # Dar tiempo a sar para iniciar (opcional, pero buena práctica)
+            sleep 5
 
       - name: 🏃 Ejecutar Pruebas de Carga con JMeter
         run: |
           jmeter -n -t ${{ github.event.inputs.jmx_file }} \
                  -l results/jmeter_raw_results.jtl \
                  -e -o results/jmeter_html_report
-
-      - name: 🛑 Detener Monitoreo de sar y Convertir a CSV
-        run: |
-          # 1. Recuperar el PID
-          SAR_PID=$(cat sar_pid_tmp.txt)
           
-          # 2. Detener el proceso. Usamos kill -15 y luego kill -9 si no funciona (para robustez)
-          echo "Intentando detener sar (PID: $SAR_PID)..."
-          kill -15 $SAR_PID
-          sleep 5 # Dar tiempo a sar para volcar los datos
+          # ----------------------------------------------------
+          # FINAL: DETENCIÓN Y CONVERSIÓN (SAR)
+          # ----------------------------------------------------
+               echo "Deteniendo sar y convirtiendo métricas..."
           
-          # 3. Convertir el archivo binario sar.bin a CSV usando sadf
-          if [ -f sar.bin ]; then
-            sadf -d sar.bin -- -A > sar_metrics.csv
-            echo "Métricas de sar guardadas en sar_metrics.csv"
-          else
-            echo "ERROR: Archivo sar.bin no encontrado. Monitoreo fallido."
-            touch sar_metrics.csv # Crear archivo vacío para evitar que Python falle
-          fi
+          # Detener el proceso sar de forma suave (PID capturado en este mismo shell)
+               kill -15 $SAR_PID
+               sleep 5 # Dar tiempo a sar para volcar los datos al disco
           
-          # Limpieza (opcional): asegurar que el proceso esté muerto
-          kill -9 $SAR_PID 2>/dev/null || true
+          # Convertir el archivo binario sar.bin a CSV
+               if [ -f sar.bin ]; then
+               sadf -d sar.bin -- -A > sar_metrics.csv
+               echo "Métricas de sar guardadas en sar_metrics.csv."
+               else
+               echo "⚠️ ADVERTENCIA: Archivo sar.bin no encontrado. Monitoreo fallido, sar_metrics.csv estará vacío."
+               touch sar_metrics.csv # Evitar que el siguiente script de Python falle
+               fi
+          
+          # Limpieza final: forzar la muerte del proceso sar (si aún vive)
+               kill -9 $SAR_PID 2>/dev/null || true
 
       - name: 🐍 Generar Reporte Combinado (Python)
         id: generate_report
