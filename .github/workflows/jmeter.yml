@@ -47,8 +47,8 @@ jobs:
 
       - name: 🚀 Ejecutar la AUT en segundo plano
         run: |
+          cd swagger-petstore
           mvn package jetty:run & 
-          # Esperar un momento para que la API se inicie completamente
           sleep 10
 
 
