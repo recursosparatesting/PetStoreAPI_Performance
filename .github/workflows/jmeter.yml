@@ -50,6 +50,7 @@ jobs:
           cd aut_repo
           mvn package jetty:run & 
           sleep 10
+          cd ..
 
 
       - name: 📊 Iniciar Monitoreo de sar en background
