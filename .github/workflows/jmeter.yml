@@ -1,0 +1,98 @@
+name: Performance Test Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      aut_repo:
+        description: 'URL del repositorio público de la aplicación bajo prueba (PetStore)'
+        required: true
+        default: 'https://github.com/swagger-api/swagger-petstore.git'
+
+      jmx_file:
+        description: 'Nombre del archivo .jmx de JMeter
+        required: true
+        default: 'PP_PetStoreApi.jmx'
+
+jobs:
+  performance_run:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: ⚙️ Checkout del Robot (Este Repositorio)
+        uses: actions/checkout@v4
+
+      - name: 📦 Instalar Maven y Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 📦 Instalar sysstat (para sar)
+        run: sudo apt update && sudo apt install sysstat -y
+
+      - name: 📦 Instalar JMeter (Desde Repositorio Oficial)
+        run: |
+          JMETER_VERSION=5.6.3
+          wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.zip
+          unzip apache-jmeter-${JMETER_VERSION}.zip
+          echo "$PWD/apache-jmeter-${JMETER_VERSION}/bin" >> $GITHUB_PATH
+
+      - name: 📦 Instalar dependencias de Python para el Reporte
+        run: pip install pandas matplotlib plotly jmeter-analysis
+
+      - name: 📥 Clonar y compilar la AUT
+        run: |
+          git clone ${{ github.event.inputs.aut_repo }} aut_repo
+          cd aut_repo
+
+      - name: 🚀 Ejecutar la AUT en segundo plano
+        run: |
+          mvn package jetty:run & 
+          # Esperar un momento para que la API se inicie completamente
+          sleep 10
+
+
+      - name: 📊 Iniciar Monitoreo de sar en background
+        id: start_sar
+        run: |
+          # Recolección cada 5 segundos. 
+          # Este script auxiliar inicia la recolección y registra el PID.
+          ./start_sar_monitoring.sh &
+          sleep 2 # Dar tiempo a sar para iniciar
+
+      - name: 🏃 Ejecutar Pruebas de Carga con JMeter
+        run: |
+          jmeter -n -t ${{ github.event.inputs.jmx_file }} \
+                 -l results/jmeter_raw_results.jtl \
+                 -e -o results/jmeter_html_report
+
+      - name: 🛑 Detener Monitoreo de sar
+        run: ./stop_sar_monitoring.sh
+
+      - name: 🐍 Generar Reporte Combinado (Python)
+        id: generate_report
+        run: python generate_report.py
+
+      - name: 📤 Subir Reporte Combinado (HTML)
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-rendimiento-combinado
+          path: combined_report.html
+
+      - name: 📤 Subir Archivos Crudos de JMeter
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmeter-raw-data
+          path: results/jmeter_raw_results.jtl
+
+      - name: 📤 Subir Reporte HTML Nativo de JMeter
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmeter-native-report
+          path: results/jmeter_html_report/
+
+      - name: 📤 Subir Métricas Crudas de sar (CSV)
+        uses: actions/upload-artifact@v4
+        with:
+          name: sar-raw-data
+          path: sar_metrics.csv
