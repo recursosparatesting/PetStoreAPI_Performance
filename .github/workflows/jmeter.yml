@@ -49,7 +49,7 @@ jobs:
         run: |
           cd aut_repo
           mvn package jetty:run & 
-          sleep 10
+          sleep 20
           cd ..
 
 
@@ -59,7 +59,7 @@ jobs:
           # Recolección cada 5 segundos. 
           # Este script auxiliar inicia la recolección y registra el PID.
           sh start_sar_monitoring.sh &
-          sleep 2 # Dar tiempo a sar para iniciar
+          sleep 10 # Dar tiempo a sar para iniciar
 
       - name: 🏃 Ejecutar Pruebas de Carga con JMeter
         run: |
@@ -68,7 +68,9 @@ jobs:
                  -e -o results/jmeter_html_report
 
       - name: 🛑 Detener Monitoreo de sar
-        run: sh stop_sar_monitoring.sh
+        run: |
+             set -e
+             sh stop_sar_monitoring.sh
 
       - name: 🐍 Generar Reporte Combinado (Python)
         id: generate_report
