@@ -47,7 +47,7 @@ jobs:
 
       - name: 🚀 Ejecutar la AUT en segundo plano
         run: |
-          cd swagger-petstore
+          cd aut_repo
           mvn package jetty:run & 
           sleep 10
 
