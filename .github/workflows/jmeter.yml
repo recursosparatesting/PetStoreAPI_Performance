@@ -68,13 +68,6 @@ jobs:
                    -l results/jmeter_raw_results.jtl \
                    -e -o results/jmeter_html_report
           
-
-      - name: 📤 Subir Reporte Combinado (HTML)
-        uses: actions/upload-artifact@v4
-        with:
-          name: reporte-rendimiento-combinado
-          path: combined_report.html
-
       - name: 📤 Subir Archivos Crudos de JMeter
         uses: actions/upload-artifact@v4
         with:
