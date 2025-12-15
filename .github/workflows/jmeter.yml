@@ -32,7 +32,7 @@ jobs:
           JMETER_VERSION=5.6.3
           wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.zip
           unzip apache-jmeter-${JMETER_VERSION}.zip
-          echo "$PWD/apache-jmeter-${JMETER_VERSION}/bin" >> $GITHUB_PATH
+          export JMETER="$PWD/apache-jmeter-${JMETER_VERSION}/bin"
 
       - name: 📥 Clonar y compilar la AUT
         run: |
@@ -49,6 +49,7 @@ jobs:
 
       - name: 🏃 Ejecutar Pruebas de Carga con JMeter
         run: |
+          cd $JMETER
           sh jmeter.sh -n -t ${{ github.event.inputs.jmx_file }} \
                  -l results/jmeter_raw_results.jtl \
                  -e -o results/jmeter_html_report
