@@ -52,7 +52,6 @@ jobs:
 
       - name: 🚀 Ejecutar la AUT en segundo plano
         run: |
-          cd aut_repo
           mvn package jetty:run & 
           sleep 20
           cd ..
