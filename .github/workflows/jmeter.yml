@@ -51,10 +51,23 @@ jobs:
 
       - name: 🚀 Ejecutar la AUT en segundo plano
         run: |
-          cd aut_repo
-          mvn package jetty:run & 
-          sleep 20
-          cd ..
+            # El 'mvn package jetty:run' inicia el servidor en segundo plano
+            cd aut_repo
+            nohup mvn package jetty:run &> aut.log &
+            cd ..
+            echo "La AUT se está iniciando en segundo plano. Esperando..."
+
+      - name: ⏱️ Esperar a que la AUT esté disponible (Health Check)
+        uses: nev7n/wait_for_response@v1
+        with:
+                # URL por defecto de la aplicación PetStore con Jetty
+                url: http://localhost:8080/swagger-petstore/v2/swagger.json
+                # Espera hasta 180 segundos antes de fallar
+                timeout: 180
+                # Reintenta cada 5 segundos
+                interval: 5
+                # Código HTTP esperado (200 OK)
+                response_code: 200
 
 
       - name: 🏃 Ejecutar Pruebas de Carga con JMeter
