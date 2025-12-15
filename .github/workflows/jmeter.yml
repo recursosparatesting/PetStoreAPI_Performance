@@ -28,11 +28,22 @@ jobs:
           java-version: '17'
 
       - name: 📦 Instalar JMeter (Desde Repositorio Oficial)
+        id: install_jmeter
         run: |
-          JMETER_VERSION=5.6.3
-          wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.zip
-          unzip apache-jmeter-${JMETER_VERSION}.zip
-          export JMETER="$PWD/apache-jmeter-${JMETER_VERSION}/bin"
+            JMETER_VERSION=5.6.3
+            JMETER_ARCHIVE=apache-jmeter-${JMETER_VERSION}.zip
+            JMETER_FOLDER=apache-jmeter-${JMETER_VERSION}
+            
+            echo "Descargando JMeter versión ${JMETER_VERSION}..."
+            wget https://archive.apache.org/dist/jmeter/binaries/${JMETER_ARCHIVE}
+            unzip ${JMETER_ARCHIVE}
+            
+            # Definir JMETER_HOME para uso posterior
+            JMETER_HOME="$PWD/${JMETER_FOLDER}"
+            echo "JMETER_HOME=${JMETER_HOME}" >> $GITHUB_ENV
+            
+            # Agregar el binario a GITHUB_PATH para que el comando 'jmeter' esté disponible
+            echo "${JMETER_HOME}/bin" >> $GITHUB_PATH
 
       - name: 📥 Clonar y compilar la AUT
         run: |
@@ -49,10 +60,14 @@ jobs:
 
       - name: 🏃 Ejecutar Pruebas de Carga con JMeter
         run: |
-          cd $JMETER
-          sh jmeter.sh -n -t ${{ github.event.inputs.jmx_file }} \
-                 -l results/jmeter_raw_results.jtl \
-                 -e -o results/jmeter_html_report
+            # Asegurarse de que el directorio de resultados existe
+            mkdir -p results
+            
+            # La variable de entorno JMETER_HOME está disponible gracias al paso anterior
+            # Ejecutamos jmeter.sh usando la ruta completa
+            $JMETER_HOME/bin/jmeter.sh -n -t ${{ github.event.inputs.jmx_file }} \
+                   -l results/jmeter_raw_results.jtl \
+                   -e -o results/jmeter_html_report
           
 
       - name: 📤 Subir Reporte Combinado (HTML)
