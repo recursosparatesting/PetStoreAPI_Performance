@@ -61,7 +61,7 @@ jobs:
         uses: nev7n/wait_for_response@v1
         with:
                 # URL por defecto de la aplicación PetStore con Jetty
-                url: http://localhost:8080/swagger-petstore/v2/swagger.json
+                url: http://localhost:8080/api/v3/openapi.json
                 # Espera hasta 180 segundos antes de fallar
                 timeout: 360
                 # Reintenta cada 5 segundos
