@@ -63,9 +63,9 @@ jobs:
                 # URL por defecto de la aplicación PetStore con Jetty
                 url: http://localhost:8080/swagger-petstore/v2/swagger.json
                 # Espera hasta 180 segundos antes de fallar
-                timeout: 180
+                timeout: 360
                 # Reintenta cada 5 segundos
-                interval: 5
+                interval: 10
                 # Código HTTP esperado (200 OK)
                 response_code: 200
 
