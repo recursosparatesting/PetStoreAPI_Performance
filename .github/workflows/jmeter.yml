@@ -27,18 +27,12 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 📦 Instalar sysstat (para sar)
-        run: sudo apt update && sudo apt install sysstat -y
-
       - name: 📦 Instalar JMeter (Desde Repositorio Oficial)
         run: |
           JMETER_VERSION=5.6.3
           wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.zip
           unzip apache-jmeter-${JMETER_VERSION}.zip
           echo "$PWD/apache-jmeter-${JMETER_VERSION}/bin" >> $GITHUB_PATH
-
-      - name: 📦 Instalar dependencias de Python para el Reporte
-        run: pip install pandas matplotlib plotly
 
       - name: 📥 Clonar y compilar la AUT
         run: |
@@ -53,61 +47,12 @@ jobs:
           cd ..
 
 
-      - name: 🏃 Ejecutar Pruebas de Carga y Monitoreo de sar (Combinado)
-        run: |
-          # ----------------------------------------------------
-          # INICIO: ARRANQUE DEL MONITOREO (SAR)
-          # ----------------------------------------------------
-          echo "Iniciando monitoreo sar..."
-          
-          # 1. Ejecutar sar en background, y capturar el PID inmediatamente después.
-          # Usamos un sub-shell para asegurar que $! contenga el PID de sar.
-          ( sar -o sar.bin -A 5 0 > /dev/null 2>&1 & echo $! > sar_pid_tmp.txt )
-          
-          # Dar tiempo a sar para iniciar y que el archivo PID se escriba
-          sleep 2 
-          
-          # 2. Leer el PID capturado para usarlo en la terminación
-          SAR_PID=$(cat sar_pid_tmp.txt)
-          echo "sar iniciado con PID: $SAR_PID"
-
       - name: 🏃 Ejecutar Pruebas de Carga con JMeter
         run: |
-          jmeter -n -t ${{ github.event.inputs.jmx_file }} \
+          sh jmeter.sh -n -t ${{ github.event.inputs.jmx_file }} \
                  -l results/jmeter_raw_results.jtl \
                  -e -o results/jmeter_html_report
           
-          # ----------------------------------------------------
-          # FINAL: DETENCIÓN Y CONVERSIÓN (SAR)
-          # ----------------------------------------------------
-          echo "Deteniendo sar y convirtiendo métricas..."
-          
-          # Verificar si el PID es válido antes de llamar a kill
-          if [[ -n "$SAR_PID" && "$SAR_PID" =~ ^[0-9]+$ ]]; then
-            echo "Intentando detener sar con PID: $SAR_PID"
-          
-            # Detener el proceso sar de forma suave
-            kill -15 "$SAR_PID"
-            sleep 5 # Dar tiempo a sar para volcar los datos al disco
-          
-            # Limpieza final: forzar la muerte del proceso (silenciosamente)
-            kill -9 "$SAR_PID" 2>/dev/null || true
-          else
-            echo "⚠️ ERROR FATAL: PID de sar no válido o vacío. No se pudo detener el monitoreo."
-          fi
-
-          # Convertir el archivo binario sar.bin a CSV (independientemente si el kill funcionó)
-          if [ -f sar.bin ]; then
-            sadf -d sar.bin -- -A > sar_metrics.csv
-            echo "Métricas de sar guardadas en sar_metrics.csv."
-          else
-            echo "⚠️ ADVERTENCIA: Archivo sar.bin no encontrado. sar_metrics.csv estará vacío."
-            touch sar_metrics.csv
-          fi
-
-      - name: 🐍 Generar Reporte Combinado (Python)
-        id: generate_report
-        run: python generate_report.py
 
       - name: 📤 Subir Reporte Combinado (HTML)
         uses: actions/upload-artifact@v4
@@ -126,9 +71,3 @@ jobs:
         with:
           name: jmeter-native-report
           path: results/jmeter_html_report/
-
-      - name: 📤 Subir Métricas Crudas de sar (CSV)
-        uses: actions/upload-artifact@v4
-        with:
-          name: sar-raw-data
-          path: sar_metrics.csv
