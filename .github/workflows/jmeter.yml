@@ -62,12 +62,9 @@ jobs:
         with:
                 # URL por defecto de la aplicación PetStore con Jetty
                 url: http://localhost:8080/api/v3/openapi.json
-                # Espera hasta 180 segundos antes de fallar
-                timeout: 360
-                # Reintenta cada 5 segundos
-                interval: 10
-                # Código HTTP esperado (200 OK)
-                response_code: 200
+                timeout: 180000
+                interval: 5000
+                responseCode: 200
 
 
       - name: 🏃 Ejecutar Pruebas de Carga con JMeter
